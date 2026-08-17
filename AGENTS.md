@@ -10,7 +10,6 @@ Pure static files. No build tooling, no generator, no CI. Manifests are hand-aut
 
 ## Structure
 
-- `.nojekyll` — **must stay in place**; tells GitHub Pages to serve all files verbatim without Jekyll processing (protects extension-less files like `manifest`)
 - `index.html` — human-browsable rock index page (lists versions; also links to `.zip` manifest archives that **do not exist** — dead/aspirational links, not a bug to "fix" without asking)
 - `manifest` — canonical LuaRocks manifest (Lua table: `commands`, `modules`, `repository`), lists every published `wow-dev-core` version, all entries `arch = "rockspec"`
 - `manifest-5.1`, `manifest-5.2`, `manifest-5.3`, `manifest-5.4` — per-Lua-version manifest variants, hand-duplicated from `manifest`. Currently `manifest`/`5.1`/`5.2`/`5.3` are identical; `5.4` intentionally omits `1.0.1-1` (see Gotchas).
@@ -44,3 +43,4 @@ This repo is purely metadata — it never contains actual Lua source. It is dire
 - **`1.0.2-1` historical defect**: its rockspec points at `tag = "v1.0.1"` (no `v1.0.2` tag exists in core-luarock). Known, unfixed — do not retag or remove it from the manifests.
 - **Broken `.zip` links**: `index.html` links to manifest `.zip` archives that were never actually produced. Known, not yet fixed — don't spend time debugging a "404" here unless asked to actually add the archives.
 - **GitHub Pages**: repo is served at `https://wow-u.github.io/luarocks/`. Configure luarocks with `luarocks config rocks_servers '{"https://wow-u.github.io/luarocks/"}'`.
+- **Do NOT add `.nojekyll`**: this repo builds via Jekyll through GitHub's built-in `pages-build-deployment` workflow. Jekyll correctly serves the extension-less `manifest*` files. Adding `.nojekyll` switches to a raw-upload deploy path that fails at the "Deploy to GitHub Pages" step — confirmed broken on 2026-08-17 from commit `ca163e1` onward. If `.nojekyll` appears again, remove it immediately.
