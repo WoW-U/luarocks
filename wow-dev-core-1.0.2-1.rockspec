@@ -2,7 +2,7 @@ package = "wow-dev-core"
 rockspec_format = "3.1"
 version = "1.0.2-1"
 source = {
-   url = "git+ssh://git@github.com/WoW-U/core-luarock.git",
+   url = "git+https://github.com/WoW-U/core-luarock.git",
    tag = "v1.0.1"
 }
 description = {
