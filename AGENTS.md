@@ -36,6 +36,49 @@ There is no automation — follow these steps in order every time `core-luarock`
 
 This repo is purely metadata — it never contains actual Lua source. It is directly downstream of **WoW-U/core-luarock**: every rockspec's `source.url` and `tag` point there, and `build.modules` must be kept in sync with that repo's module layout whenever it changes. If a rockspec's module list and core-luarock's actual files diverge, installs will fail at build time even though the rockspec resolves fine.
 
+## Agent publishing runbook
+
+> Read this section once, then follow it exactly. The rest of the file is background.
+
+**Consumers install with:**
+```
+luarocks install wow-dev-core --only-server=https://wow-u.github.io/luarocks/
+# fallback server: https://raw.githubusercontent.com/WoW-U/luarocks/main/
+```
+
+### Pre-flight (do first, stop if any fail)
+
+- [ ] Confirm the `v<version>` tag is pushed and public on `WoW-U/core-luarock`. A tag not yet public = broken installs for every consumer the moment you publish.
+- [ ] Confirm `build.modules` in your new rockspec matches core-luarock's actual `src/` layout for that tag. Divergence causes build-time failure even though the rockspec resolves fine.
+
+### File changes (all required, in order)
+
+1. Create `wow-dev-core-<version>-<rev>.rockspec` — copy the most recent rockspec as template. Set `version`, `source.tag = "v<version>"`, update `build.modules`. `source.url` must be `git+https://…`, never `git+ssh://`.
+2. Append `["<version>-<rev>"] = { { arch = "rockspec" } }` to `manifest`, `manifest-5.1`, `manifest-5.2`, `manifest-5.3`. For `manifest-5.4`: omit the entry if the rockspec declares `lua … < 5.4`.
+3. Add the version to `index.html`.
+4. **BOM check before committing**: every manifest file's first three bytes must NOT be `EF BB BF`. PowerShell UTF-8 default writes a BOM. Write with `New-Object System.Text.UTF8Encoding $false`. Do NOT validate with `loadfile` — it silently skips BOMs and gives a false pass.
+5. Stage by filename (`git add manifest manifest-5.1 manifest-5.2 manifest-5.3 manifest-5.4 wow-dev-core-<version>-<rev>.rockspec index.html`), commit, push.
+6. Never add `.nojekyll` — it switches Pages to a raw artifact deploy that breaks the deploy step, leaving the old build live with no error visible on push.
+
+### Post-push verification (required — do not skip)
+
+- Watch the `pages-build-deployment` workflow run in GitHub Actions. If it fails: fix the root cause and push again. **Do not re-run an older successful workflow run** — that republishes stale content.
+- Fetch the live manifest and confirm the new version appears:
+  ```
+  curl -s https://wow-u.github.io/luarocks/manifest | grep "<version>-<rev>"
+  ```
+- Run a real install (the only proof that counts):
+  ```
+  luarocks install wow-dev-core --only-server=https://wow-u.github.io/luarocks/ --tree /tmp/verify-<version>
+  ```
+  Expected: installs the new version, places expected module files. A dry manifest check is not sufficient.
+
+### Known historical defect (do not touch)
+
+- `1.0.2-1` rockspec points at `tag = "v1.0.1"` (no `v1.0.2` tag in core-luarock). Leave it.
+
+---
+
 ## Maintainer gotchas
 
 - **HTTPS source URL**: `source.url` uses `git+https://` (public, no SSH key required). All rockspecs use this. Do not revert to `git+ssh://`.
